@@ -1,14 +1,5 @@
 namespace LunchSplit.Core
 {
-    // Tip mode enum as described in the assignment
-    public enum TipMode
-    {
-        None,
-        Percent,
-        Fixed
-    }
-
-    // Immutable Bill model
     public class Bill
     {
         public decimal Subtotal { get; }

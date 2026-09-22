@@ -1,3 +1,5 @@
+using System;
+
 namespace LunchSplit.Core
 {
     public class Splitter
@@ -10,13 +12,16 @@ namespace LunchSplit.Core
             if (mode == TipMode.Fixed && tipInput < 0)
                 throw new ArgumentOutOfRangeException(nameof(tipInput));
 
-            return mode switch
-            {
-                TipMode.None => 0m,
-                TipMode.Percent => subtotal * (tipInput / 100m),
-                TipMode.Fixed => tipInput,
-                _ => 0m
-            };
+            if (mode == TipMode.None)
+                return 0m;
+
+            if (mode == TipMode.Percent)
+                return subtotal * (tipInput / 100m);
+
+            if (mode == TipMode.Fixed)
+                return tipInput;
+
+            return 0m;
         }
     }
 }
