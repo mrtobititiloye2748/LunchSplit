@@ -1,5 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LunchSplit.Core;
+using System;
 
 namespace LunchSplit.Tests
 {
@@ -21,5 +22,43 @@ namespace LunchSplit.Tests
             // Assert
             Assert.AreEqual(0m, result);
         }
+
+        [TestMethod]
+        public void ComputeTip_FixedTipMode_ReturnsFixedAmount()
+        {
+            // Arrange
+            var splitter = new Splitter();
+            decimal subtotal = 120m;
+            TipMode mode = TipMode.Fixed;
+            decimal input = 15m;
+
+            // Act
+            decimal result = splitter.ComputeTip(subtotal, mode, input);
+
+            // Assert
+            Assert.AreEqual(15m, result);
+        }
+
+        [TestMethod]
+        public void ComputeTip_NegativeSubtotal_ThrowsException()
+        {
+            // Arrange
+            var splitter = new Splitter();
+            decimal subtotal = -10m;
+            TipMode mode = TipMode.Percent;
+            decimal input = 10m;
+
+            // Act + Assert
+            try
+            {
+                splitter.ComputeTip(subtotal, mode, input);
+                Assert.Fail("Expected ArgumentOutOfRangeException.");
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // success
+            }
+        }
     }
 }
+

@@ -1,5 +1,6 @@
 namespace LunchSplit.Core
 {
+
     public class Bill
     {
         public decimal Subtotal { get; }
