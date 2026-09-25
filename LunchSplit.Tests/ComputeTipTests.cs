@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using LunchSplit;
 using LunchSplit.Core;
 using System;
 
@@ -58,6 +59,11 @@ namespace LunchSplit.Tests
             {
                 // success
             }
+
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
+            {
+                splitter.ComputeTip(subtotal, mode, input);
+            });
         }
     }
 }
