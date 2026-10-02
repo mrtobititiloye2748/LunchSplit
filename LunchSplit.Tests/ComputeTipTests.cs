@@ -1,5 +1,4 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LunchSplit;
 using LunchSplit.Core;
 using System;
 
@@ -67,4 +66,3 @@ namespace LunchSplit.Tests
         }
     }
 }
-
