@@ -1,5 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LunchSplit.Core;
+using System.Collections.Generic;
 
 namespace LunchSplit.Tests
 {
@@ -7,22 +8,54 @@ namespace LunchSplit.Tests
     public class BillTests
     {
         [TestMethod]
-        public void Bill_StoresValuesCorrectly()
+        public void Bill_StoresSubtotal()
         {
-            // Arrange
-            decimal subtotal = 100m;
-            decimal tax = 13m;
-            TipMode mode = TipMode.Percent;
-            decimal tipInput = 15m;
+            var bill = new Bill(50m, 5m, 10m, new List<Attendee>(), new List<Share>());
+            Assert.AreEqual(50m, bill.Subtotal);
+        }
 
-            // Act
-            var bill = new Bill(subtotal, tax, mode, tipInput);
+        [TestMethod]
+        public void Bill_StoresTax()
+        {
+            var bill = new Bill(50m, 5m, 10m, new List<Attendee>(), new List<Share>());
+            Assert.AreEqual(5m, bill.Tax);
+        }
 
-            // Assert
-            Assert.AreEqual(subtotal, bill.Subtotal);
-            Assert.AreEqual(tax, bill.Tax);
-            Assert.AreEqual(mode, bill.TipMode);
-            Assert.AreEqual(tipInput, bill.TipInput);
+        [TestMethod]
+        public void Bill_StoresTip()
+        {
+            var bill = new Bill(50m, 5m, 10m, new List<Attendee>(), new List<Share>());
+            Assert.AreEqual(10m, bill.Tip);
+        }
+
+        [TestMethod]
+        public void Bill_StoresAttendees()
+        {
+            var attendees = new List<Attendee>
+            {
+                new Attendee("Tobi", 2, true),
+                new Attendee("Sam", 1, true)
+            };
+
+            var bill = new Bill(50m, 5m, 10m, attendees, new List<Share>());
+
+            Assert.AreEqual(2, bill.Attendees.Count);
+            Assert.AreEqual("Tobi", bill.Attendees[0].Name);
+        }
+
+        [TestMethod]
+        public void Bill_StoresShares()
+        {
+            var shares = new List<Share>
+            {
+                new Share("Fries", 4.50m),
+                new Share("Burger", 8.00m)
+            };
+
+            var bill = new Bill(50m, 5m, 10m, new List<Attendee>(), shares);
+
+            Assert.AreEqual(2, bill.Shares.Count);
+            Assert.AreEqual("Fries", bill.Shares[0].Name);
         }
     }
 }
