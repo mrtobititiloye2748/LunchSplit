@@ -9,11 +9,7 @@ namespace LunchSplit.Tests
         [TestMethod]
         public void Share_StoresNameAndAmount()
         {
-            var share = new Share
-            {
-                Name = "Fries",
-                Amount = 4.50m
-            };
+            var share = new Share("Fries", 4.50m);
 
             Assert.AreEqual("Fries", share.Name);
             Assert.AreEqual(4.50m, share.Amount);

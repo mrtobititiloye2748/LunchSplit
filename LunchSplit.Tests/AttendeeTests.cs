@@ -9,12 +9,7 @@ namespace LunchSplit.Tests
         [TestMethod]
         public void Attendee_StoresNameWeightAndIncluded()
         {
-            var attendee = new Attendee
-            {
-                Name = "Tobi",
-                Weight = 2,
-                Included = true
-            };
+            var attendee = new Attendee("Tobi", 2, true);
 
             Assert.AreEqual("Tobi", attendee.Name);
             Assert.AreEqual(2, attendee.Weight);
