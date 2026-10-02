@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LunchSplit.Core;
-using System;
+using System.Collections.Generic;
 
 namespace LunchSplit.Tests
 {
@@ -8,61 +8,51 @@ namespace LunchSplit.Tests
     public class ComputeTipTests
     {
         [TestMethod]
-        public void ComputeTip_NoTipMode_ReturnsZero()
+        public void Tip_RoundsCorrectly()
         {
-            // Arrange
-            var splitter = new Splitter();
-            decimal subtotal = 100m;
-            TipMode mode = TipMode.None;
-            decimal input = 0m;
-
-            // Act
-            decimal result = splitter.ComputeTip(subtotal, mode, input);
-
-            // Assert
-            Assert.AreEqual(0m, result);
+            var rounder = new Rounder();
+            var result = rounder.RoundTip(8.999m);
+            Assert.AreEqual(9.00m, result);
         }
 
         [TestMethod]
-        public void ComputeTip_FixedTipMode_ReturnsFixedAmount()
+        public void Tip_IncludedInTotalSplit()
         {
-            // Arrange
+            var attendees = new List<Attendee>
+            {
+                new Attendee("Tobi", 1, true),
+                new Attendee("Sam", 1, true)
+            };
+
+            var bill = new Bill(40m, 4m, 6m, attendees, new List<Share>());
             var splitter = new Splitter();
-            decimal subtotal = 120m;
-            TipMode mode = TipMode.Fixed;
-            decimal input = 15m;
 
-            // Act
-            decimal result = splitter.ComputeTip(subtotal, mode, input);
+            var result = splitter.Split(bill);
 
-            // Assert
-            Assert.AreEqual(15m, result);
+            // Total = 40 + 4 + 6 = 50
+            // Each gets half = 25
+            Assert.AreEqual(25m, result[attendees[0]]);
+            Assert.AreEqual(25m, result[attendees[1]]);
         }
 
         [TestMethod]
-        public void ComputeTip_NegativeSubtotal_ThrowsException()
+        public void Tip_ZeroTip_LeavesSubtotalAndTaxOnly()
         {
-            // Arrange
+            var attendees = new List<Attendee>
+            {
+                new Attendee("Tobi", 1, true),
+                new Attendee("Sam", 1, true)
+            };
+
+            var bill = new Bill(40m, 4m, 0m, attendees, new List<Share>());
             var splitter = new Splitter();
-            decimal subtotal = -10m;
-            TipMode mode = TipMode.Percent;
-            decimal input = 10m;
 
-            // Act + Assert
-            try
-            {
-                splitter.ComputeTip(subtotal, mode, input);
-                Assert.Fail("Expected ArgumentOutOfRangeException.");
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                // success
-            }
+            var result = splitter.Split(bill);
 
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
-            {
-                splitter.ComputeTip(subtotal, mode, input);
-            });
+            // Total = 40 + 4 = 44
+            // Each gets half = 22
+            Assert.AreEqual(22m, result[attendees[0]]);
+            Assert.AreEqual(22m, result[attendees[1]]);
         }
     }
 }

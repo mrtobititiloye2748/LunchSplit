@@ -1,19 +1,22 @@
+using System.Collections.Generic;
+
 namespace LunchSplit.Core
 {
-
     public class Bill
     {
         public decimal Subtotal { get; }
         public decimal Tax { get; }
-        public TipMode TipMode { get; }
-        public decimal TipInput { get; }
+        public decimal Tip { get; }
+        public List<Attendee> Attendees { get; }
+        public List<Share> Shares { get; }
 
-        public Bill(decimal subtotal, decimal tax, TipMode tipMode, decimal tipInput)
+        public Bill(decimal subtotal, decimal tax, decimal tip, List<Attendee> attendees, List<Share> shares)
         {
             Subtotal = subtotal;
             Tax = tax;
-            TipMode = tipMode;
-            TipInput = tipInput;
+            Tip = tip;
+            Attendees = attendees;
+            Shares = shares;
         }
     }
 }

@@ -1,27 +1,60 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace LunchSplit.Core
 {
     public class Splitter
     {
-        public decimal ComputeTip(decimal subtotal, TipMode mode, decimal tipInput)
+        private readonly Rounder _rounder = new Rounder();
+
+        public Dictionary<Attendee, decimal> Split(Bill bill)
         {
-            if (subtotal < 0)
-                throw new ArgumentOutOfRangeException(nameof(subtotal));
+            if (bill.Attendees.Count == 0)
+                return new Dictionary<Attendee, decimal>();
 
-            if (mode == TipMode.Fixed && tipInput < 0)
-                throw new ArgumentOutOfRangeException(nameof(tipInput));
+            // 1. Round subtotal, tax, tip
+            var subtotal = _rounder.RoundSubtotal(bill.Subtotal);
+            var tax = _rounder.RoundTax(bill.Tax);
+            var tip = _rounder.RoundTip(bill.Tip);
 
-            if (mode == TipMode.None)
-                return 0m;
+            // 2. Round shares
+            var shareTotal = bill.Shares
+                .Select(s => _rounder.RoundShare(s.Amount))
+                .Sum();
 
-            if (mode == TipMode.Percent)
-                return subtotal * (tipInput / 100m);
+            // 3. Round attendee weights
+            var attendees = bill.Attendees
+                .Select(a => new Attendee(a.Name, (int)_rounder.RoundWeight(a.Weight), a.Included))
+                .ToList();
 
-            if (mode == TipMode.Fixed)
-                return tipInput;
+            // 4. Compute total weight
+            var totalWeight = attendees.Where(a => a.Included).Sum(a => a.Weight);
 
-            return 0m;
+            if (totalWeight == 0)
+                return attendees.ToDictionary(a => a, a => 0m);
+
+            // 5. Compute total bill
+            var totalBill = subtotal + tax + tip + shareTotal;
+
+            // 6. Compute each attendee’s share
+            var results = new Dictionary<Attendee, decimal>();
+
+            foreach (var attendee in attendees)
+            {
+                if (!attendee.Included)
+                {
+                    results[attendee] = 0m;
+                    continue;
+                }
+
+                var rawSplit = totalBill * (attendee.Weight / (decimal)totalWeight);
+                var roundedSplit = _rounder.RoundSplit(rawSplit);
+
+                results[attendee] = roundedSplit;
+            }
+
+            return results;
         }
     }
 }
