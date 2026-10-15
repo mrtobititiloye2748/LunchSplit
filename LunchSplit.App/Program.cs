@@ -13,72 +13,87 @@ namespace LunchSplit.App
 
             // Collect subtotal
             Console.Write("Enter subtotal: ");
-            var subtotalInput = Console.ReadLine() ?? "0";
-            decimal subtotal = decimal.TryParse(subtotalInput, out var subtotalVal) ? subtotalVal : 0m;
+            string subtotalInput = Console.ReadLine();
+            decimal subtotal = 0m;
+            decimal.TryParse(subtotalInput, out subtotal);
 
             // Collect tax
             Console.Write("Enter tax: ");
-            var taxInput = Console.ReadLine() ?? "0";
-            decimal tax = decimal.TryParse(taxInput, out var taxVal) ? taxVal : 0m;
+            string taxInput = Console.ReadLine();
+            decimal tax = 0m;
+            decimal.TryParse(taxInput, out tax);
 
             // Collect tip
             Console.Write("Enter tip: ");
-            var tipInput = Console.ReadLine() ?? "0";
-            decimal tip = decimal.TryParse(tipInput, out var tipVal) ? tipVal : 0m;
+            string tipInput = Console.ReadLine();
+            decimal tip = 0m;
+            decimal.TryParse(tipInput, out tip);
 
             // Collect attendees
-            var attendees = new List<Attendee>();
+            List<Attendee> attendees = new List<Attendee>();
             Console.WriteLine();
             Console.WriteLine("Enter attendees (name, weight, included). Type 'done' to finish.");
 
             while (true)
             {
                 Console.Write("Attendee name (or 'done'): ");
-                var name = Console.ReadLine();
+                string name = Console.ReadLine();
+
                 if (string.IsNullOrWhiteSpace(name) || name.ToLower() == "done")
+                {
                     break;
+                }
 
                 Console.Write("Weight: ");
-                var weightInput = Console.ReadLine() ?? "0";
-                int weight = int.TryParse(weightInput, out var weightVal) ? weightVal : 0;
+                string weightInput = Console.ReadLine();
+                int weight = 0;
+                int.TryParse(weightInput, out weight);
 
                 Console.Write("Included (y/n): ");
-                var includedInput = Console.ReadLine() ?? "n";
+                string includedInput = Console.ReadLine();
                 bool included = includedInput.Trim().ToLower() == "y";
 
-                attendees.Add(new Attendee(name, weight, included));
+                Attendee attendee = new Attendee(name, weight, included);
+                attendees.Add(attendee);
+
                 Console.WriteLine();
             }
 
             // Collect shares
-            var shares = new List<Share>();
+            List<Share> shares = new List<Share>();
             Console.WriteLine();
             Console.WriteLine("Enter shares (name, amount). Type 'done' to finish.");
 
             while (true)
             {
                 Console.Write("Share name (or 'done'): ");
-                var shareName = Console.ReadLine();
+                string shareName = Console.ReadLine();
+
                 if (string.IsNullOrWhiteSpace(shareName) || shareName.ToLower() == "done")
+                {
                     break;
+                }
 
                 Console.Write("Amount: ");
-                var amountInput = Console.ReadLine() ?? "0";
-                decimal amount = decimal.TryParse(amountInput, out var amountVal) ? amountVal : 0m;
+                string amountInput = Console.ReadLine();
+                decimal amount = 0m;
+                decimal.TryParse(amountInput, out amount);
 
-                shares.Add(new Share(shareName, amount));
+                Share share = new Share(shareName, amount);
+                shares.Add(share);
+
                 Console.WriteLine();
             }
 
             // Build bill
-            var bill = new Bill(subtotal, tax, tip, attendees, shares);
+            Bill bill = new Bill(subtotal, tax, tip, attendees, shares);
 
             // Compute splits
-            var splitter = new Splitter();
-            var splits = splitter.Split(bill);
+            Splitter splitter = new Splitter();
+            Dictionary<Attendee, decimal> splits = splitter.Split(bill);
 
             // Format output
-            var formatter = new Formatter();
+            Formatter formatter = new Formatter();
 
             Console.WriteLine();
             Console.WriteLine("=== Bill Summary ===");

@@ -4,56 +4,70 @@ using System.Collections.Generic;
 
 namespace LunchSplit.Tests
 {
+    // Tests for the Splitter class to make sure splitting logic works
     [TestClass]
     public class SplitterTests
     {
         [TestMethod]
         public void Split_NoAttendees_ReturnsEmpty()
         {
-            var bill = new Bill(50m, 5m, 10m, new List<Attendee>(), new List<Share>());
-            var splitter = new Splitter();
+            // Arrange: no attendees and no shares
+            List<Attendee> attendees = new List<Attendee>();
+            List<Share> shares = new List<Share>();
+            Bill bill = new Bill(50m, 5m, 10m, attendees, shares);
 
-            var result = splitter.Split(bill);
+            Splitter splitter = new Splitter();
 
+            // Act: split the bill
+            Dictionary<Attendee, decimal> result = splitter.Split(bill);
+
+            // Assert: no attendees means no results
             Assert.AreEqual(0, result.Count);
         }
 
         [TestMethod]
         public void Split_SingleAttendee_GetsFullAmount()
         {
-            var attendees = new List<Attendee>
-            {
-                new Attendee("Tobi", 1, true)
-            };
+            // Arrange: one attendee included
+            List<Attendee> attendees = new List<Attendee>();
+            attendees.Add(new Attendee("Jack", 1, true));
 
-            var bill = new Bill(50m, 5m, 10m, attendees, new List<Share>());
-            var splitter = new Splitter();
+            List<Share> shares = new List<Share>();
 
-            var result = splitter.Split(bill);
+            // Bill total = subtotal + tax + tip = 50 + 5 + 10 = 65
+            Bill bill = new Bill(50m, 5m, 10m, attendees, shares);
 
-            // Total = 50 + 5 + 10 = 65
+            Splitter splitter = new Splitter();
+
+            // Act
+            Dictionary<Attendee, decimal> result = splitter.Split(bill);
+
+            // Assert: Jack should pay the full amount
             Assert.AreEqual(65m, result[attendees[0]]);
         }
 
         [TestMethod]
         public void Split_TwoAttendees_WeightedSplit()
         {
-            var attendees = new List<Attendee>
-            {
-                new Attendee("Tobi", 2, true),
-                new Attendee("Sam", 1, true)
-            };
+            // Arrange: Jack weight 2, Sam weight 1
+            List<Attendee> attendees = new List<Attendee>();
+            attendees.Add(new Attendee("Jack", 2, true));
+            attendees.Add(new Attendee("Sam", 1, true));
 
-            var bill = new Bill(60m, 6m, 9m, attendees, new List<Share>());
-            var splitter = new Splitter();
+            List<Share> shares = new List<Share>();
 
-            var result = splitter.Split(bill);
+            // Total bill = 60 + 6 + 9 = 75
+            // Total weight = 2 + 1 = 3
+            // Jack gets 2/3 of 75 = 50
+            // Sam gets 1/3 of 75 = 25
+            Bill bill = new Bill(60m, 6m, 9m, attendees, shares);
 
-            // Total = 60 + 6 + 9 = 75
-            // Weight = 2 + 1 = 3
-            // Tobi = 2/3 * 75 = 50
-            // Sam = 1/3 * 75 = 25
+            Splitter splitter = new Splitter();
 
+            // Act
+            Dictionary<Attendee, decimal> result = splitter.Split(bill);
+
+            // Assert
             Assert.AreEqual(50m, result[attendees[0]]);
             Assert.AreEqual(25m, result[attendees[1]]);
         }
@@ -61,26 +75,26 @@ namespace LunchSplit.Tests
         [TestMethod]
         public void Split_SharesIncluded()
         {
-            var attendees = new List<Attendee>
-            {
-                new Attendee("Tobi", 1, true),
-                new Attendee("Sam", 1, true)
-            };
+            // Arrange: two equal attendees
+            List<Attendee> attendees = new List<Attendee>();
+            attendees.Add(new Attendee("Jack", 1, true));
+            attendees.Add(new Attendee("Sam", 1, true));
 
-            var shares = new List<Share>
-            {
-                new Share("Fries", 4.50m),
-                new Share("Burger", 8.00m)
-            };
+            // Shares total = 4.50 + 8.00 = 12.50
+            List<Share> shares = new List<Share>();
+            shares.Add(new Share("Fries", 4.50m));
+            shares.Add(new Share("Burger", 8.00m));
 
-            var bill = new Bill(40m, 4m, 6m, attendees, shares);
-            var splitter = new Splitter();
-
-            var result = splitter.Split(bill);
-
-            // Total = 40 + 4 + 6 + 12.50 = 62.50
+            // Total bill = 40 + 4 + 6 + 12.50 = 62.50
             // Each gets half = 31.25
+            Bill bill = new Bill(40m, 4m, 6m, attendees, shares);
 
+            Splitter splitter = new Splitter();
+
+            // Act
+            Dictionary<Attendee, decimal> result = splitter.Split(bill);
+
+            // Assert
             Assert.AreEqual(31.25m, result[attendees[0]]);
             Assert.AreEqual(31.25m, result[attendees[1]]);
         }
@@ -88,20 +102,22 @@ namespace LunchSplit.Tests
         [TestMethod]
         public void Split_ExcludedAttendee_GetsZero()
         {
-            var attendees = new List<Attendee>
-            {
-                new Attendee("Tobi", 1, true),
-                new Attendee("Sam", 1, false)
-            };
+            // Arrange: Jack included, Sam excluded
+            List<Attendee> attendees = new List<Attendee>();
+            attendees.Add(new Attendee("Jack", 1, true));
+            attendees.Add(new Attendee("Sam", 1, false));
 
-            var bill = new Bill(40m, 4m, 6m, attendees, new List<Share>());
-            var splitter = new Splitter();
+            List<Share> shares = new List<Share>();
 
-            var result = splitter.Split(bill);
+            // Total bill = 40 + 4 + 6 = 50
+            Bill bill = new Bill(40m, 4m, 6m, attendees, shares);
 
-            // Total = 50
-            // Only Tobi included → Tobi gets 50, Sam gets 0
+            Splitter splitter = new Splitter();
 
+            // Act
+            Dictionary<Attendee, decimal> result = splitter.Split(bill);
+
+            // Assert: Jack pays 50, Sam pays 0
             Assert.AreEqual(50m, result[attendees[0]]);
             Assert.AreEqual(0m, result[attendees[1]]);
         }

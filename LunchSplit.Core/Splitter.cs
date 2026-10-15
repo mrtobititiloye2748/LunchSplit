@@ -1,57 +1,88 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace LunchSplit.Core
 {
+    // The Splitter class calculates how much each attendee owes.
     public class Splitter
     {
         private readonly Rounder _rounder = new Rounder();
 
+        // Splits the bill among attendees using weighted distribution.
         public Dictionary<Attendee, decimal> Split(Bill bill)
         {
+            // If no attendees, return an empty dictionary
             if (bill.Attendees.Count == 0)
+            {
                 return new Dictionary<Attendee, decimal>();
+            }
 
-            // 1. Round subtotal, tax, tip
-            var subtotal = _rounder.RoundSubtotal(bill.Subtotal);
-            var tax = _rounder.RoundTax(bill.Tax);
-            var tip = _rounder.RoundTip(bill.Tip);
+            // 1. Round subtotal, tax, and tip
+            decimal subtotal = _rounder.RoundSubtotal(bill.Subtotal);
+            decimal tax = _rounder.RoundTax(bill.Tax);
+            decimal tip = _rounder.RoundTip(bill.Tip);
 
-            // 2. Round shares
-            var shareTotal = bill.Shares
-                .Select(s => _rounder.RoundShare(s.Amount))
-                .Sum();
+            // 2. Round all share amounts
+            decimal shareTotal = 0m;
+            foreach (Share share in bill.Shares)
+            {
+                decimal roundedShare = _rounder.RoundShare(share.Amount);
+                shareTotal += roundedShare;
+            }
 
-            // 3. Round attendee weights
-            var attendees = bill.Attendees
-                .Select(a => new Attendee(a.Name, (int)_rounder.RoundWeight(a.Weight), a.Included))
-                .ToList();
+            // 3. Round attendee weights and rebuild attendee list
+            List<Attendee> attendees = new List<Attendee>();
+            foreach (Attendee attendee in bill.Attendees)
+            {
+                int roundedWeight = (int)_rounder.RoundWeight(attendee.Weight);
+                Attendee newAttendee = new Attendee(attendee.Name, roundedWeight, attendee.Included);
+                attendees.Add(newAttendee);
+            }
 
-            // 4. Compute total weight
-            var totalWeight = attendees.Where(a => a.Included).Sum(a => a.Weight);
+            // 4. Compute total weight of included attendees
+            int totalWeight = 0;
+            foreach (Attendee attendee in attendees)
+            {
+                if (attendee.Included)
+                {
+                    totalWeight += attendee.Weight;
+                }
+            }
 
+            // If nobody is included, everyone owes 0
             if (totalWeight == 0)
-                return attendees.ToDictionary(a => a, a => 0m);
+            {
+                Dictionary<Attendee, decimal> zeroResults = new Dictionary<Attendee, decimal>();
+                foreach (Attendee attendee in attendees)
+                {
+                    zeroResults.Add(attendee, 0m);
+                }
+                return zeroResults;
+            }
 
             // 5. Compute total bill
-            var totalBill = subtotal + tax + tip + shareTotal;
+            decimal totalBill = subtotal + tax + tip + shareTotal;
 
-            // 6. Compute each attendee’s share
-            var results = new Dictionary<Attendee, decimal>();
+            // 6. Compute each attendee's share
+            Dictionary<Attendee, decimal> results = new Dictionary<Attendee, decimal>();
 
-            foreach (var attendee in attendees)
+            foreach (Attendee attendee in attendees)
             {
+                // If attendee is excluded, they owe 0
                 if (!attendee.Included)
                 {
-                    results[attendee] = 0m;
+                    results.Add(attendee, 0m);
                     continue;
                 }
 
-                var rawSplit = totalBill * (attendee.Weight / (decimal)totalWeight);
-                var roundedSplit = _rounder.RoundSplit(rawSplit);
+                // Compute weighted share
+                decimal weightRatio = attendee.Weight / (decimal)totalWeight;
+                decimal rawSplit = totalBill * weightRatio;
 
-                results[attendee] = roundedSplit;
+                // Round the final split
+                decimal roundedSplit = _rounder.RoundSplit(rawSplit);
+
+                results.Add(attendee, roundedSplit);
             }
 
             return results;

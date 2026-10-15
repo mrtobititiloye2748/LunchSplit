@@ -1,20 +1,23 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace LunchSplit.Core
 {
+    // The Formatter class builds readable text output for the bill and final splits.
     public class Formatter
     {
+        // Formats the bill details into a readable string
         public string FormatBill(Bill bill)
         {
-            var sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
 
-            sb.AppendLine($"Subtotal: ${bill.Subtotal:F2}");
-            sb.AppendLine($"Tax: ${bill.Tax:F2}");
-            sb.AppendLine($"Tip: ${bill.Tip:F2}");
+            // Basic bill amounts
+            sb.AppendLine("Subtotal: $" + bill.Subtotal.ToString("F2"));
+            sb.AppendLine("Tax: $" + bill.Tax.ToString("F2"));
+            sb.AppendLine("Tip: $" + bill.Tip.ToString("F2"));
             sb.AppendLine();
 
+            // Shares section
             sb.AppendLine("Shares:");
             if (bill.Shares.Count == 0)
             {
@@ -22,32 +25,38 @@ namespace LunchSplit.Core
             }
             else
             {
-                foreach (var share in bill.Shares)
-                    sb.AppendLine($" - {share.Name}: ${share.Amount:F2}");
+                foreach (Share share in bill.Shares)
+                {
+                    sb.AppendLine(" - " + share.Name + ": $" + share.Amount.ToString("F2"));
+                }
             }
 
             sb.AppendLine();
+
+            // Attendees section
             sb.AppendLine("Attendees:");
-            foreach (var attendee in bill.Attendees)
+            foreach (Attendee attendee in bill.Attendees)
             {
-                var included = attendee.Included ? "included" : "excluded";
-                sb.AppendLine($" - {attendee.Name} (weight {attendee.Weight}, {included})");
+                string includedText = attendee.Included ? "included" : "excluded";
+                sb.AppendLine(" - " + attendee.Name + " (weight " + attendee.Weight + ", " + includedText + ")");
             }
 
             return sb.ToString().TrimEnd();
         }
 
+        // Formats the final split amounts into a readable string
         public string FormatSplits(Dictionary<Attendee, decimal> splits)
         {
-            var sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
 
             sb.AppendLine("Final Splits:");
-            foreach (var kvp in splits)
-            {
-                var attendee = kvp.Key;
-                var amount = kvp.Value;
 
-                sb.AppendLine($" - {attendee.Name}: ${amount:F2}");
+            foreach (KeyValuePair<Attendee, decimal> entry in splits)
+            {
+                Attendee attendee = entry.Key;
+                decimal amount = entry.Value;
+
+                sb.AppendLine(" - " + attendee.Name + ": $" + amount.ToString("F2"));
             }
 
             return sb.ToString().TrimEnd();
