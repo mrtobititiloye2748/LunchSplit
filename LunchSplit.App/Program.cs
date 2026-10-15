@@ -12,19 +12,19 @@ namespace LunchSplit.App
             Console.WriteLine();
 
             // Collect subtotal
-            Console.Write("Enter subtotal: ");
+            Console.Write("Enter the meal subtotal (before tax/tip): ");
             string subtotalInput = Console.ReadLine();
             decimal subtotal = 0m;
             decimal.TryParse(subtotalInput, out subtotal);
 
             // Collect tax
-            Console.Write("Enter tax: ");
+            Console.Write("Enter the tax amount: ");
             string taxInput = Console.ReadLine();
             decimal tax = 0m;
             decimal.TryParse(taxInput, out tax);
 
             // Collect tip
-            Console.Write("Enter tip: ");
+            Console.Write("Enter the tip amount: ");
             string tipInput = Console.ReadLine();
             decimal tip = 0m;
             decimal.TryParse(tipInput, out tip);
@@ -32,56 +32,52 @@ namespace LunchSplit.App
             // Collect attendees
             List<Attendee> attendees = new List<Attendee>();
             Console.WriteLine();
-            Console.WriteLine("Enter attendees (name, weight, included). Type 'done' to finish.");
+            Console.WriteLine("Enter each person who is part of the bill.");
+            Console.WriteLine("Type 'done' when finished.");
+            Console.WriteLine();
 
             while (true)
             {
-                Console.Write("Attendee name (or 'done'): ");
+                Console.Write("Person's name (or 'done'): ");
                 string name = Console.ReadLine();
 
                 if (string.IsNullOrWhiteSpace(name) || name.ToLower() == "done")
-                {
                     break;
-                }
 
-                Console.Write("Weight: ");
+                Console.Write("How many portions did this person eat? (portion weight): ");
                 string weightInput = Console.ReadLine();
                 int weight = 0;
                 int.TryParse(weightInput, out weight);
 
-                Console.Write("Included (y/n): ");
+                Console.Write("Is this person included in the split? (y/n): ");
                 string includedInput = Console.ReadLine();
                 bool included = includedInput.Trim().ToLower() == "y";
 
-                Attendee attendee = new Attendee(name, weight, included);
-                attendees.Add(attendee);
-
+                attendees.Add(new Attendee(name, weight, included));
                 Console.WriteLine();
             }
 
             // Collect shares
             List<Share> shares = new List<Share>();
             Console.WriteLine();
-            Console.WriteLine("Enter shares (name, amount). Type 'done' to finish.");
+            Console.WriteLine("Enter any shared items (e.g., fries, nachos).");
+            Console.WriteLine("Type 'done' when finished.");
+            Console.WriteLine();
 
             while (true)
             {
-                Console.Write("Share name (or 'done'): ");
+                Console.Write("Shared item name (or 'done'): ");
                 string shareName = Console.ReadLine();
 
                 if (string.IsNullOrWhiteSpace(shareName) || shareName.ToLower() == "done")
-                {
                     break;
-                }
 
-                Console.Write("Amount: ");
+                Console.Write("Cost of this shared item: ");
                 string amountInput = Console.ReadLine();
                 decimal amount = 0m;
                 decimal.TryParse(amountInput, out amount);
 
-                Share share = new Share(shareName, amount);
-                shares.Add(share);
-
+                shares.Add(new Share(shareName, amount));
                 Console.WriteLine();
             }
 
