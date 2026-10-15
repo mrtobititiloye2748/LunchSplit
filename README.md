@@ -1,250 +1,134 @@
-# LunchSplit
-CSCN72010 – Software Quality I – Assignment 1 (TDD + MSTest)
+# LunchSplit: Assignment 1
 
-A multi‑project .NET console application for splitting a restaurant bill evenly among multiple people.
+LunchSplit is a C# console application that calculates how much each attendee owes for a shared meal. Users enter the subtotal, tax, tip, attendees, and shared items. The program then calculates each person's final amount based on their portion weight and inclusion status.
 
----
+This project was developed for CS Assignment 1, focusing on C# fundamentals, software architecture, unit testing, and Git workflow.
 
-## Overview
+## How to Run the Project
 
-LunchSplit is a simple bill‑splitting application built using a clean multi‑project architecture:
+### Prerequisites
 
-- **LunchSplit.Core** — business logic  
-- **LunchSplit.App** — console UI  
-- **LunchSplit.Tests** — MSTest unit tests  
+- .NET 6 or later
+- Visual Studio or Visual Studio Code
 
-The app collects user input (subtotal, tip percentage, number of people), validates it, calculates the total bill including tip, splits it evenly, rounds values to two decimals, and displays formatted results.
+### Running the Application
 
----
+From the solution root, run:
 
-## Project Structure
+```bash
+dotnet run --project LunchSplit.App
+```
 
-LunchSplit/
-├── LunchSplit.App/
-│    └── Program.cs
-├── LunchSplit.Core/
-│    ├── Bill.cs
-│    ├── Share.cs
-│    ├── Splitter.cs
-│    └── Formatter.cs
-└── LunchSplit.Tests/
-├── BillTests.cs
-├── SplitterTests.cs
-└── FormatterTests.cs
+Alternatively, if you are already inside the application folder, run:
 
----
+```bash
+cd LunchSplit.App
+dotnet run
+```
 
-## Source Code
+The console will prompt you to enter the subtotal, tax, tip, attendees, and shared items.
+
+Once the information has been entered, the application will display a formatted bill summary and the final amount each attendee owes.
+
+## Project Architecture
 
 ### LunchSplit.Core
 
-#### Bill.cs
-```csharp
-namespace LunchSplit.Core;
+This project contains the main business logic used to calculate and format the bill.
 
-public class Bill
-{
-    public decimal Subtotal { get; }
-    public decimal TipPercent { get; }
-    public decimal Tip => Math.Round(Subtotal * (TipPercent / 100m), 2);
-    public decimal Total => Math.Round(Subtotal + Tip, 2);
+- **Bill.cs:** Represents the full bill and its details.
+- **Attendee.cs:** Represents a person participating in the bill split.
+- **Share.cs:** Represents shared items and their costs.
+- **Splitter.cs:** Calculates how the bill is divided among attendees.
+- **Rounder.cs:** Handles rounding calculations.
+- **Formatter.cs:** Formats the bill summary for display.
 
-    public Bill(decimal subtotal, decimal tipPercent)
-    {
-        Subtotal = subtotal;
-        TipPercent = tipPercent;
-    }
-}
+### LunchSplit.App
 
-Share.cs
-csharp
-namespace LunchSplit.Core;
+This project contains the console application that users interact with.
 
-public class Share
-{
-    public int PersonNumber { get; }
-    public decimal Amount { get; }
+- **Program.cs:** Handles user input, runs the application logic, and displays the results.
 
-    public Share(int personNumber, decimal amount)
-    {
-        PersonNumber = personNumber;
-        Amount = Math.Round(amount, 2);
-    }
-}
-Splitter.cs
-csharp
-namespace LunchSplit.Core;
+### LunchSplit.Tests
 
-public class Splitter
-{
-    public List<Share> Split(Bill bill, int people)
-    {
-        var shares = new List<Share>();
-        decimal perPerson = bill.Total / people;
+This project contains the MSTest unit tests used to verify the application's behaviour.
 
-        for (int i = 1; i <= people; i++)
-            shares.Add(new Share(i, perPerson));
+The tests cover the main classes and follow the Arrange, Act, Assert (AAA) pattern. They also follow the professor's requirement to avoid using `var` in test code, keeping the syntax consistent and beginner-friendly.
 
-        return shares;
-    }
-}
-Formatter.cs
-csharp
-namespace LunchSplit.Core;
+## Testing
 
-public static class Formatter
-{
-    public static string FormatShare(Share share)
-    {
-        return $"Person {share.PersonNumber} owes {share.Amount:C}";
-    }
-}
-LunchSplit.App
-Program.cs
-csharp
-using LunchSplit.Core;
+### How to Run the Tests
 
-Console.WriteLine("=== LunchSplit ===");
+From the solution root, run:
 
-decimal subtotal;
-while (true)
-{
-    Console.Write("Enter subtotal: ");
-    if (decimal.TryParse(Console.ReadLine(), out subtotal) && subtotal >= 0)
-        break;
-
-    Console.WriteLine("Invalid subtotal. Please enter a non-negative number.");
-}
-
-decimal tipPercent;
-while (true)
-{
-    Console.Write("Enter tip percentage: ");
-    if (decimal.TryParse(Console.ReadLine(), out tipPercent) && tipPercent >= 0)
-        break;
-
-    Console.WriteLine("Invalid tip percentage. Please enter a non-negative number.");
-}
-
-int people;
-while (true)
-{
-    Console.Write("Enter number of people: ");
-    if (int.TryParse(Console.ReadLine(), out people) && people > 0)
-        break;
-
-    Console.WriteLine("Invalid number. Must be at least 1.");
-}
-
-var bill = new Bill(subtotal, tipPercent);
-var splitter = new Splitter();
-var shares = splitter.Split(bill, people);
-
-Console.WriteLine("\n--- Split Results ---");
-foreach (var share in shares)
-{
-    Console.WriteLine(Formatter.FormatShare(share));
-}
-LunchSplit.Tests
-BillTests.cs
-csharp
-using LunchSplit.Core;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-namespace LunchSplit.Tests;
-
-[TestClass]
-public class BillTests
-{
-    [TestMethod]
-    public void Bill_ComputesTipCorrectly()
-    {
-        var bill = new Bill(100m, 15m);
-        Assert.AreEqual(15m, bill.Tip);
-    }
-
-    [TestMethod]
-    public void Bill_ComputesTotalCorrectly()
-    {
-        var bill = new Bill(100m, 20m);
-        Assert.AreEqual(120m, bill.Total);
-    }
-}
-SplitterTests.cs
-csharp
-using LunchSplit.Core;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-namespace LunchSplit.Tests;
-
-[TestClass]
-public class SplitterTests
-{
-    [TestMethod]
-    public void Splitter_SplitsEvenly()
-    {
-        var bill = new Bill(100m, 0m);
-        var splitter = new Splitter();
-
-        var shares = splitter.Split(bill, 4);
-
-        Assert.AreEqual(4, shares.Count);
-        Assert.AreEqual(25m, shares[0].Amount);
-    }
-
-    [TestMethod]
-    public void Splitter_SplitsWithTip()
-    {
-        var bill = new Bill(100m, 10m);
-        var splitter = new Splitter();
-
-        var shares = splitter.Split(bill, 2);
-
-        Assert.AreEqual(55m, shares[0].Amount);
-        Assert.AreEqual(55m, shares[1].Amount);
-    }
-}
-FormatterTests.cs
-csharp
-using LunchSplit.Core;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-namespace LunchSplit.Tests;
-
-[TestClass]
-public class FormatterTests
-{
-    [TestMethod]
-    public void Formatter_FormatsShareCorrectly()
-    {
-        var share = new Share(1, 25.5m);
-        string result = Formatter.FormatShare(share);
-
-        Assert.AreEqual("Person 1 owes $25.50", result);
-    }
-}
-
-Running the Application
-
-Run the console app:
-
-cd LunchSplit.App
-
-dotnet run
-
-Run all tests:
-
+```bash
 dotnet test
+```
 
-Example Output
+This command runs the test suite and reports the results in the console.
 
-=== LunchSplit ===
-Enter subtotal: 100
-Enter tip percentage: 15
-Enter number of people: 4
+### Testing Approach
 
---- Split Results ---
-Person 1 owes $28.75
-Person 2 owes $28.75
-Person 3 owes $28.75
-Person 4 owes $28.75
+The tests follow the AAA pattern:
+
+- **Arrange:** Set up the objects and values needed for the test.
+- **Act:** Execute the method being tested.
+- **Assert:** Verify that the result matches the expected outcome.
+
+The test suite covers:
+
+- Portion weight calculations
+- Attendee inclusion and exclusion
+- Shared item distribution
+- Rounding logic
+- Output formatting
+
+The tests use explicit variable types instead of `var`, as required by the professor.
+
+Test results can be checked directly in the terminal using the output from `dotnet test`. This makes it possible to verify the application's behaviour without needing screenshots or additional visual evidence in this document.
+
+## Git Workflow
+
+Git was used to organize development, track changes, and manage different parts of the project.
+
+### Branches Used
+
+- `main`: Contains the stable version of the project.
+- `feature/core-cleanup`: Used for cleaning up the core classes.
+- `feature/tests`: Used for changes to the unit test suite.
+- `feature-docs`: Used for documentation and README updates.
+
+### Workflow Summary
+
+Each major change was handled on a dedicated feature branch to keep development organized. Related changes were grouped into meaningful commits, and completed branches were merged back into `main`.
+
+This approach helped separate different areas of development, made changes easier to track, and provided a clearer project history.
+
+### Example Commit Messages
+
+The following examples show how commits can describe specific changes:
+
+```text
+Refactored Program.cs prompts for clarity and user-friendliness
+Cleaned Bill.cs and added XML documentation
+Rewrote SplitterTests using AAA pattern and removed var
+Added README and project documentation
+```
+
+The repository's commit history provides a record of the changes made throughout development.
+
+## Reflection
+
+Working on LunchSplit helped me understand how the different parts of a C# project fit together. At first, I struggled with connecting the classes and getting the console application to run correctly. As I worked through these issues, I developed a better understanding of how to separate responsibilities between classes and organize the application's logic.
+
+Improving the prompts in `Program.cs` made the application easier to use. Reworking the tests also helped me understand the Arrange, Act, Assert pattern and the importance of testing individual parts of a program.
+
+I also gained a better understanding of Git workflow. Creating feature branches, making meaningful commits, and merging changes into `main` helped me see how version control can keep a project organized as it develops.
+
+Overall, this assignment strengthened my understanding of C# fundamentals, software architecture, unit testing, Git workflow, and technical documentation. It also taught me the importance of understanding the code I write and making sure that my tests reflect the actual structure and behaviour of the application.
+
+## GitHub Repository
+
+The source code and project files are available on GitHub:
+
+https://github.com/mrtobititiloye2748/LunchSplit
