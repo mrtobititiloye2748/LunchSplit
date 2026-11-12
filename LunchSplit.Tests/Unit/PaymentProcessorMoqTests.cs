@@ -136,5 +136,43 @@ namespace LunchSplit.Tests.Unit
             // Assert: one gateway call per attendee - no more, no less
             paymentMock.Verify(p => p.ProcessPaymentAsync(It.IsAny<PaymentRequest>()), Times.Exactly(4));
         }
+
+        /*
+         * TEST ID     : M3-07
+         * DESCRIPTION : Partial batch failure resilience - attendee #2 is declined while
+         *               attendees #1 and #3 succeed (Moq SetupSequence).
+         * EXPECTED    : The batch keeps going after the decline and the summary reports
+         *               2 successes and 1 failure (Bob).
+         */
+        [TestMethod]
+        public async Task M3_07_PayBill_SecondAttendeeDeclined_SummaryReportsTwoSuccessesOneFailure()
+        {
+            // Arrange: $60 bill split evenly between 3 attendees ($20 each)
+            List<Attendee> attendees = new List<Attendee>();
+            attendees.Add(new Attendee("Alice", 1, true));
+            attendees.Add(new Attendee("Bob", 1, true));
+            attendees.Add(new Attendee("Carol", 1, true));
+            Bill bill = new Bill(50m, 4m, 6m, attendees, new List<Share>());
+
+            // The mock answers each call in order: approve, decline, approve
+            Mock<IPaymentProcessor> paymentMock = new Mock<IPaymentProcessor>();
+            paymentMock.SetupSequence(p => p.ProcessPaymentAsync(It.IsAny<PaymentRequest>()))
+                       .ReturnsAsync(PaymentResult.Success("TX_ALICE"))
+                       .ReturnsAsync(PaymentResult.Failure("CARD_DECLINED", "Card was declined."))
+                       .ReturnsAsync(PaymentResult.Success("TX_CAROL"));
+
+            PaymentCoordinator coordinator = new PaymentCoordinator(paymentMock.Object);
+
+            // Act: collect the whole bill
+            BatchPaymentSummary summary = await coordinator.PayBillAsync(bill, TestNonce);
+
+            // Assert: 2 successes, 1 failure, and the failure is attributed to attendee #2 (Bob)
+            Assert.AreEqual(2, summary.SuccessCount);
+            Assert.AreEqual(1, summary.FailureCount);
+            CollectionAssert.AreEqual(new List<string> { "Bob" }, summary.FailedAttendees);
+
+            // The decline did not stop the batch - all 3 attendees were attempted
+            paymentMock.Verify(p => p.ProcessPaymentAsync(It.IsAny<PaymentRequest>()), Times.Exactly(3));
+        }
     }
 }
