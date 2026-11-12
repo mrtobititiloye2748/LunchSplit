@@ -106,5 +106,35 @@ namespace LunchSplit.Tests.Unit
             Assert.IsFalse(summary.IsValid, "A $0.00 bill must fail validation.");
             paymentMock.Verify(p => p.ProcessPaymentAsync(It.IsAny<PaymentRequest>()), Times.Never());
         }
+
+        /*
+         * TEST ID     : M3-06
+         * DESCRIPTION : Batch payment iteration across a 4-attendee split bill.
+         * EXPECTED    : ProcessPaymentAsync is called exactly 4 times (Times.Exactly(4)),
+         *               once for each attendee.
+         */
+        [TestMethod]
+        public async Task M3_06_PayBill_FourAttendees_CallsProcessorExactlyFourTimes()
+        {
+            // Arrange: $80 + $8 tax + $12 tip = $100 split evenly between 4 attendees ($25 each)
+            List<Attendee> attendees = new List<Attendee>();
+            attendees.Add(new Attendee("Alice", 1, true));
+            attendees.Add(new Attendee("Bob", 1, true));
+            attendees.Add(new Attendee("Carol", 1, true));
+            attendees.Add(new Attendee("Dave", 1, true));
+            Bill bill = new Bill(80m, 8m, 12m, attendees, new List<Share>());
+
+            Mock<IPaymentProcessor> paymentMock = new Mock<IPaymentProcessor>();
+            paymentMock.Setup(p => p.ProcessPaymentAsync(It.IsAny<PaymentRequest>()))
+                       .ReturnsAsync(PaymentResult.Success("TX_BATCH"));
+
+            PaymentCoordinator coordinator = new PaymentCoordinator(paymentMock.Object);
+
+            // Act: collect the whole bill
+            await coordinator.PayBillAsync(bill, TestNonce);
+
+            // Assert: one gateway call per attendee - no more, no less
+            paymentMock.Verify(p => p.ProcessPaymentAsync(It.IsAny<PaymentRequest>()), Times.Exactly(4));
+        }
     }
 }
