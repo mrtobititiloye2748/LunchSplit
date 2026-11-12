@@ -105,5 +105,26 @@ namespace LunchSplit.Tests.Integration
             Assert.IsTrue(result.IsSuccess, "Expected success but got: " + result.ErrorCode + " " + result.ErrorMessage);
             Assert.IsFalse(string.IsNullOrWhiteSpace(result.TransactionId), "TransactionId should not be empty.");
         }
+
+        /*
+         * TEST ID     : M3-02
+         * DESCRIPTION : Live card decline with the magic nonce "cnon:card-nonce-declined".
+         * EXPECTED    : IsSuccess == false and ErrorCode == "CARD_DECLINED".
+         */
+        [TestMethod]
+        [Timeout(LiveTestTimeoutMs)]
+        public async Task M3_02_ProcessPayment_CardNonceDeclined_ReturnsCardDeclinedError()
+        {
+            // Arrange: real Square service and a request using the "declined" magic nonce
+            IPaymentProcessor service = CreateService();
+            PaymentRequest request = BuildRequest("cnon:card-nonce-declined", 12.50m, _currency);
+
+            // Act: Square answers with HTTP 400; the wrapper must turn that into a failed result
+            PaymentResult result = await service.ProcessPaymentAsync(request);
+
+            // Assert: the payment failed with Square's CARD_DECLINED error code
+            Assert.IsFalse(result.IsSuccess, "A declined card must not be reported as a success.");
+            Assert.AreEqual("CARD_DECLINED", result.ErrorCode);
+        }
     }
 }
