@@ -26,6 +26,9 @@ namespace LunchSplit.Core.Payments
         // Human readable error detail from the gateway (empty when the payment worked)
         public string ErrorMessage { get; set; }
 
+        // HTTP status code returned by the gateway (200 on success, e.g. 400 for validation errors, 0 if unknown)
+        public int HttpStatusCode { get; set; }
+
         // Default constructor sets safe empty values so no property is ever null
         public PaymentResult()
         {
@@ -33,6 +36,7 @@ namespace LunchSplit.Core.Payments
             TransactionId = string.Empty;
             ErrorCode = string.Empty;
             ErrorMessage = string.Empty;
+            HttpStatusCode = 0;
         }
 
         /*
@@ -46,6 +50,7 @@ namespace LunchSplit.Core.Payments
             PaymentResult result = new PaymentResult();
             result.IsSuccess = true;
             result.TransactionId = transactionId;
+            result.HttpStatusCode = 200;
             return result;
         }
 
@@ -58,10 +63,25 @@ namespace LunchSplit.Core.Payments
          */
         public static PaymentResult Failure(string errorCode, string errorMessage)
         {
+            // Status code is unknown here; gateway wrappers can use the overload below
+            return Failure(errorCode, errorMessage, 0);
+        }
+
+        /*
+         * METHOD      : Failure
+         * DESCRIPTION : Factory helper that builds a failed result including the HTTP status.
+         * PARAMETERS  : string errorCode     - gateway / domain error code
+         *               string errorMessage  - readable description of the problem
+         *               int httpStatusCode   - HTTP status returned by the gateway
+         * RETURNS     : PaymentResult - IsSuccess = false with the error and status filled in
+         */
+        public static PaymentResult Failure(string errorCode, string errorMessage, int httpStatusCode)
+        {
             PaymentResult result = new PaymentResult();
             result.IsSuccess = false;
             result.ErrorCode = errorCode;
             result.ErrorMessage = errorMessage;
+            result.HttpStatusCode = httpStatusCode;
             return result;
         }
     }

@@ -104,7 +104,7 @@ namespace LunchSplit.Infrastructure
          * DESCRIPTION : Converts a Square API error into a failed domain PaymentResult. The first
          *               error in Square's "errors" array holds the main error code.
          * PARAMETERS  : SquareApiException ex - exception thrown by the Square SDK
-         * RETURNS     : PaymentResult - IsSuccess = false with ErrorCode / ErrorMessage
+         * RETURNS     : PaymentResult - IsSuccess = false with ErrorCode / ErrorMessage / HttpStatusCode
          */
         private static PaymentResult BuildFailureResult(SquareApiException ex)
         {
@@ -121,7 +121,8 @@ namespace LunchSplit.Infrastructure
                 }
             }
 
-            return PaymentResult.Failure(errorCode, errorMessage);
+            // Keep Square's HTTP status (e.g. 400 Bad Request) so callers can tell validation errors apart
+            return PaymentResult.Failure(errorCode, errorMessage, ex.StatusCode);
         }
 
         /*
