@@ -28,6 +28,9 @@ namespace LunchSplit.Infrastructure
         // Square SDK client used for every API call
         private readonly SquareClient _client;
 
+        // Domain error code used by LunchSplit for any generic card decline
+        private const string DomainCardDeclined = "CARD_DECLINED";
+
         /*
          * METHOD      : SquarePaymentService (constructor)
          * DESCRIPTION : Builds a Square SDK client pointed at the Sandbox with an explicit
@@ -101,28 +104,74 @@ namespace LunchSplit.Infrastructure
 
         /*
          * METHOD      : BuildFailureResult
-         * DESCRIPTION : Converts a Square API error into a failed domain PaymentResult. The first
-         *               error in Square's "errors" array holds the main error code.
+         * DESCRIPTION : Converts a Square API error into a failed domain PaymentResult.
+         *               Square can return several errors; if any of them is CARD_DECLINED that
+         *               one is used, otherwise the first error is used. Square's generic
+         *               decline codes are then normalised to the domain code "CARD_DECLINED"
+         *               (anti-corruption layer), while the raw Square code is kept in
+         *               GatewayErrorCode.
          * PARAMETERS  : SquareApiException ex - exception thrown by the Square SDK
          * RETURNS     : PaymentResult - IsSuccess = false with ErrorCode / ErrorMessage / HttpStatusCode
          */
         private static PaymentResult BuildFailureResult(SquareApiException ex)
         {
-            string errorCode = "UNKNOWN_ERROR";
+            string gatewayCode = "UNKNOWN_ERROR";
             string errorMessage = ex.Message;
 
             if (ex.Errors != null && ex.Errors.Count > 0)
             {
-                Error firstError = ex.Errors[0];
-                errorCode = firstError.Code.ToString();   // e.g. "CARD_DECLINED"
-                if (firstError.Detail != null)
+                // Default to the first error, but prefer an explicit CARD_DECLINED if present
+                Error chosenError = ex.Errors[0];
+                foreach (Error error in ex.Errors)
                 {
-                    errorMessage = firstError.Detail;
+                    if (error.Code.ToString() == DomainCardDeclined)
+                    {
+                        chosenError = error;
+                        break;
+                    }
+                }
+
+                gatewayCode = chosenError.Code.ToString();   // e.g. "GENERIC_DECLINE"
+                if (chosenError.Detail != null)
+                {
+                    errorMessage = chosenError.Detail;
                 }
             }
 
+            // Translate Square's code into the LunchSplit domain code
+            string domainCode = gatewayCode;
+            if (IsGenericDeclineCode(gatewayCode))
+            {
+                domainCode = DomainCardDeclined;
+            }
+
             // Keep Square's HTTP status (e.g. 400 Bad Request) so callers can tell validation errors apart
-            return PaymentResult.Failure(errorCode, errorMessage, ex.StatusCode);
+            PaymentResult result = PaymentResult.Failure(domainCode, errorMessage, ex.StatusCode);
+            result.GatewayErrorCode = gatewayCode;
+            return result;
+        }
+
+        /*
+         * METHOD      : IsGenericDeclineCode
+         * DESCRIPTION : Checks whether a Square error code means "the bank declined the card"
+         *               without a more specific reason. Specific reasons such as
+         *               INSUFFICIENT_FUNDS or CVV_FAILURE are deliberately NOT included so
+         *               callers can still tell them apart.
+         * PARAMETERS  : string squareCode - error code returned by Square
+         * RETURNS     : bool - true when the code is a generic card decline
+         */
+        private static bool IsGenericDeclineCode(string squareCode)
+        {
+            switch (squareCode)
+            {
+                case "CARD_DECLINED":
+                case "GENERIC_DECLINE":
+                case "CARD_DECLINED_CALL_ISSUER":
+                case "CARD_DECLINED_VERIFICATION_REQUIRED":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         /*

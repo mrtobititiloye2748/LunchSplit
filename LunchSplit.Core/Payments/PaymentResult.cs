@@ -23,6 +23,10 @@ namespace LunchSplit.Core.Payments
         // Gateway error code such as "CARD_DECLINED" (empty when the payment worked)
         public string ErrorCode { get; set; }
 
+        // Raw error code exactly as the gateway sent it (e.g. Square's "GENERIC_DECLINE").
+        // ErrorCode holds the normalised LunchSplit code; this keeps the original for logging/debugging.
+        public string GatewayErrorCode { get; set; }
+
         // Human readable error detail from the gateway (empty when the payment worked)
         public string ErrorMessage { get; set; }
 
@@ -35,6 +39,7 @@ namespace LunchSplit.Core.Payments
             IsSuccess = false;
             TransactionId = string.Empty;
             ErrorCode = string.Empty;
+            GatewayErrorCode = string.Empty;
             ErrorMessage = string.Empty;
             HttpStatusCode = 0;
         }

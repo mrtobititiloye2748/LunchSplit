@@ -122,9 +122,12 @@ namespace LunchSplit.Tests.Integration
             // Act: Square answers with HTTP 400; the wrapper must turn that into a failed result
             PaymentResult result = await service.ProcessPaymentAsync(request);
 
-            // Assert: the payment failed with Square's CARD_DECLINED error code
+            // Assert: the payment failed with the domain CARD_DECLINED error code.
+            // (Newer sandboxes send GENERIC_DECLINE; SquarePaymentService normalises it and
+            //  keeps the raw Square code in GatewayErrorCode.)
             Assert.IsFalse(result.IsSuccess, "A declined card must not be reported as a success.");
-            Assert.AreEqual("CARD_DECLINED", result.ErrorCode);
+            Assert.AreEqual("CARD_DECLINED", result.ErrorCode,
+                "Raw Square code was: " + result.GatewayErrorCode);
         }
 
         /*
