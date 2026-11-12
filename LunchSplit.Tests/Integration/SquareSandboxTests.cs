@@ -1,0 +1,109 @@
+/*
+ * FILE          : SquareSandboxTests.cs
+ * PROJECT       : CSCN72010 Software Quality I - Assignment 3 (LunchSplit)
+ * PROGRAMMER    : mrtobititiloye2748
+ * FIRST VERSION : 2026-11-12
+ * DESCRIPTION   :
+ *   Tier 1 - live integration tests. These tests call the REAL Square Sandbox
+ *   API over HTTPS through SquarePaymentService, using Square's magic test
+ *   nonces (for example "cnon:card-nonce-ok") instead of real card numbers.
+ *   Test IDs: M3-01, M3-02, M3-08, M3-09, M3-10.
+ *
+ *   If the sandbox credentials are not configured, the tests are reported as
+ *   Inconclusive (skipped) with a clear message instead of crashing.
+ */
+
+using System;
+using System.Threading.Tasks;
+using LunchSplit.Core.Payments;
+using LunchSplit.Infrastructure;
+
+namespace LunchSplit.Tests.Integration
+{
+    // Live Square Sandbox integration tests (Tier 1).
+    [TestClass]
+    public class SquareSandboxTests
+    {
+        // Upper limit for one live test (ms) - extra safety on top of the 5 second HttpClient timeout
+        private const int LiveTestTimeoutMs = 30000;
+
+        // Settings and currency are loaded once for the whole class
+        private static SquareSettings _settings = new SquareSettings();
+        private static string _currency = "CAD";
+
+        /*
+         * METHOD      : ClassInit
+         * DESCRIPTION : Loads the sandbox credentials once before any test in this class runs.
+         * PARAMETERS  : TestContext context - supplied by MSTest (not used)
+         * RETURNS     : void
+         */
+        [ClassInitialize]
+        public static void ClassInit(TestContext context)
+        {
+            _settings = SquareTestConfiguration.LoadSettings();
+            _currency = SquareTestConfiguration.LoadCurrency();
+        }
+
+        /*
+         * METHOD      : CreateService
+         * DESCRIPTION : Creates the real Square wrapper, or marks the test Inconclusive when
+         *               credentials are missing.
+         * PARAMETERS  : none
+         * RETURNS     : IPaymentProcessor - the live SquarePaymentService
+         */
+        private static IPaymentProcessor CreateService()
+        {
+            if (!_settings.HasCredentials())
+            {
+                Assert.Inconclusive("Square Sandbox credentials not configured. Set the "
+                    + SquareTestConfiguration.AccessTokenKey + " and "
+                    + SquareTestConfiguration.LocationIdKey + " environment variables.");
+            }
+
+            return new SquarePaymentService(_settings);
+        }
+
+        /*
+         * METHOD      : BuildRequest
+         * DESCRIPTION : Builds a payment request with a brand-new idempotency key.
+         * PARAMETERS  : string cardNonce   - Square magic test nonce
+         *               decimal amount     - amount in dollars
+         *               string currency    - ISO currency code
+         * RETURNS     : PaymentRequest - ready to send to the gateway
+         */
+        private static PaymentRequest BuildRequest(string cardNonce, decimal amount, string currency)
+        {
+            PaymentRequest request = new PaymentRequest();
+            request.PayerName = "Sandbox Tester";
+            request.Amount = amount;
+            request.CurrencyCode = currency;
+            request.CardNonce = cardNonce;
+
+            // A new GUID for each request so independent tests never collide
+            request.IdempotencyKey = Guid.NewGuid().ToString();
+
+            return request;
+        }
+
+        /*
+         * TEST ID     : M3-01
+         * DESCRIPTION : Live payment authorisation with the magic nonce "cnon:card-nonce-ok".
+         * EXPECTED    : IsSuccess == true and a non-empty TransactionId.
+         */
+        [TestMethod]
+        [Timeout(LiveTestTimeoutMs)]
+        public async Task M3_01_ProcessPayment_CardNonceOk_ReturnsSuccessWithTransactionId()
+        {
+            // Arrange: real Square service and a $12.50 request using the "ok" magic nonce
+            IPaymentProcessor service = CreateService();
+            PaymentRequest request = BuildRequest("cnon:card-nonce-ok", 12.50m, _currency);
+
+            // Act: send the payment to the live Square Sandbox
+            PaymentResult result = await service.ProcessPaymentAsync(request);
+
+            // Assert: the payment was accepted and Square gave us a payment id
+            Assert.IsTrue(result.IsSuccess, "Expected success but got: " + result.ErrorCode + " " + result.ErrorMessage);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(result.TransactionId), "TransactionId should not be empty.");
+        }
+    }
+}
