@@ -11,6 +11,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -97,10 +98,73 @@ namespace LunchSplit.Core.Payments
          *               string cardNonce - card token used for the charges
          * RETURNS     : Task<BatchPaymentSummary> - validation outcome and per-attendee results
          */
-        public Task<BatchPaymentSummary> PayBillAsync(Bill bill, string cardNonce)
+        public async Task<BatchPaymentSummary> PayBillAsync(Bill bill, string cardNonce)
         {
-            // Not implemented yet - driven by test M3-05 (TDD)
-            throw new NotImplementedException();
+            // 1. Precondition checks - reject bad bills BEFORE any gateway call is made
+            string validationError = ValidateBill(bill);
+            if (validationError.Length > 0)
+            {
+                return BatchPaymentSummary.Invalid(validationError);
+            }
+
+            // 2. Reuse the A1 splitting engine to work out what each attendee owes
+            Splitter splitter = new Splitter();
+            Dictionary<Attendee, decimal> splits = splitter.Split(bill);
+
+            // 3. Charge each attendee that owes money, one gateway call per attendee
+            BatchPaymentSummary summary = new BatchPaymentSummary();
+            foreach (KeyValuePair<Attendee, decimal> entry in splits)
+            {
+                Attendee attendee = entry.Key;
+                decimal amountOwed = entry.Value;
+
+                // Excluded attendees (or $0.00 shares) are skipped - nothing to charge
+                if (!attendee.Included || amountOwed <= 0m)
+                {
+                    continue;
+                }
+
+                PaymentResult result = await PayShareAsync(attendee.Name, amountOwed, cardNonce);
+                summary.Results.Add(result);
+            }
+
+            return summary;
+        }
+
+        /*
+         * METHOD      : ValidateBill
+         * DESCRIPTION : Checks the bill before charging anyone.
+         * PARAMETERS  : Bill bill - the bill to check
+         * RETURNS     : string - an error message, or an empty string when the bill is valid
+         */
+        private static string ValidateBill(Bill bill)
+        {
+            if (bill == null)
+            {
+                return "Bill is missing.";
+            }
+
+            if (bill.Attendees == null || bill.Attendees.Count == 0)
+            {
+                return "Bill has no attendees to charge.";
+            }
+
+            // Grand total = subtotal + tax + tip + extra shared items
+            decimal total = bill.Subtotal + bill.Tax + bill.Tip;
+            if (bill.Shares != null)
+            {
+                foreach (Share share in bill.Shares)
+                {
+                    total += share.Amount;
+                }
+            }
+
+            if (total <= 0m)
+            {
+                return "Bill total must be greater than $0.00.";
+            }
+
+            return string.Empty;
         }
     }
 }
