@@ -179,5 +179,28 @@ namespace LunchSplit.Tests.Integration
             Assert.AreEqual(firstResult.TransactionId, secondResult.TransactionId,
                 "A duplicate idempotency key must return the original payment, not a new one.");
         }
+
+        /*
+         * TEST ID     : M3-10
+         * DESCRIPTION : Live transaction status query (GET /v2/payments/{payment_id}) for a
+         *               payment that was just created and auto-completed.
+         * EXPECTED    : GetTransactionStatusAsync returns COMPLETED.
+         */
+        [TestMethod]
+        [Timeout(LiveTestTimeoutMs)]
+        public async Task M3_10_GetTransactionStatus_CompletedPayment_ReturnsCompleted()
+        {
+            // Arrange: create a real sandbox payment so we have a payment id to look up
+            IPaymentProcessor service = CreateService();
+            PaymentRequest request = BuildRequest("cnon:card-nonce-ok", 9.99m, _currency);
+            PaymentResult created = await service.ProcessPaymentAsync(request);
+            Assert.IsTrue(created.IsSuccess, "Setup payment failed: " + created.ErrorCode);
+
+            // Act: ask Square for the payment's current status
+            PaymentStatus status = await service.GetTransactionStatusAsync(created.TransactionId);
+
+            // Assert: Square reports the payment as COMPLETED
+            Assert.AreEqual(PaymentStatus.Completed, status);
+        }
     }
 }
