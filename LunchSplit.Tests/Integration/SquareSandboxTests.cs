@@ -153,5 +153,31 @@ namespace LunchSplit.Tests.Integration
             Assert.IsFalse(result.IsSuccess, "A payment in the wrong currency must be rejected.");
             Assert.AreEqual(400, result.HttpStatusCode);
         }
+
+        /*
+         * TEST ID     : M3-09
+         * DESCRIPTION : Live idempotency key verification - the SAME request (same
+         *               idempotency_key) is sent twice, as if a client retried after a glitch.
+         * EXPECTED    : The second response returns the original TransactionId, proving Square
+         *               did not create (charge) a second payment.
+         */
+        [TestMethod]
+        [Timeout(LiveTestTimeoutMs)]
+        public async Task M3_09_ProcessPayment_DuplicateIdempotencyKey_ReturnsOriginalTransactionId()
+        {
+            // Arrange: one request object, so both calls share the exact same idempotency key
+            IPaymentProcessor service = CreateService();
+            PaymentRequest request = BuildRequest("cnon:card-nonce-ok", 15.75m, _currency);
+
+            // Act: send the identical payment twice
+            PaymentResult firstResult = await service.ProcessPaymentAsync(request);
+            PaymentResult secondResult = await service.ProcessPaymentAsync(request);
+
+            // Assert: both calls succeed and point at the SAME payment (no double charge)
+            Assert.IsTrue(firstResult.IsSuccess, "First payment failed: " + firstResult.ErrorCode);
+            Assert.IsTrue(secondResult.IsSuccess, "Replayed payment failed: " + secondResult.ErrorCode);
+            Assert.AreEqual(firstResult.TransactionId, secondResult.TransactionId,
+                "A duplicate idempotency key must return the original payment, not a new one.");
+        }
     }
 }
