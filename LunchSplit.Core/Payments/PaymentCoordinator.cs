@@ -89,5 +89,18 @@ namespace LunchSplit.Core.Payments
                     "Payment gateway timed out while charging " + payerName + ".", ex);
             }
         }
+
+        /*
+         * METHOD      : PayBillAsync
+         * DESCRIPTION : Splits a bill with the A1 Splitter and charges every included attendee.
+         * PARAMETERS  : Bill bill        - the bill to collect
+         *               string cardNonce - card token used for the charges
+         * RETURNS     : Task<BatchPaymentSummary> - validation outcome and per-attendee results
+         */
+        public Task<BatchPaymentSummary> PayBillAsync(Bill bill, string cardNonce)
+        {
+            // Not implemented yet - driven by test M3-05 (TDD)
+            throw new NotImplementedException();
+        }
     }
 }

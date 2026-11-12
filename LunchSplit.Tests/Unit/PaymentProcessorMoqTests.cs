@@ -13,8 +13,10 @@
  *   Test IDs: M3-03, M3-04, M3-05, M3-06, M3-07.
  */
 
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using LunchSplit.Core;
 using LunchSplit.Core.Payments;
 using Moq;
 
@@ -78,6 +80,31 @@ namespace LunchSplit.Tests.Unit
 
             // No other gateway methods (e.g. status queries) should have been called
             paymentMock.VerifyNoOtherCalls();
+        }
+
+        /*
+         * TEST ID     : M3-05
+         * DESCRIPTION : Precondition short-circuit - a $0.00 bill is handed to the payment manager.
+         * EXPECTED    : Validation fails and IPaymentProcessor is NEVER invoked (Times.Never).
+         */
+        [TestMethod]
+        public async Task M3_05_PayBill_ZeroDollarBill_FailsValidationAndNeverCallsProcessor()
+        {
+            // Arrange: two attendees but the bill total is $0.00 (subtotal, tax and tip all zero)
+            List<Attendee> attendees = new List<Attendee>();
+            attendees.Add(new Attendee("Alice", 1, true));
+            attendees.Add(new Attendee("Bob", 1, true));
+            Bill zeroBill = new Bill(0m, 0m, 0m, attendees, new List<Share>());
+
+            Mock<IPaymentProcessor> paymentMock = new Mock<IPaymentProcessor>();
+            PaymentCoordinator coordinator = new PaymentCoordinator(paymentMock.Object);
+
+            // Act: try to collect the $0.00 bill
+            BatchPaymentSummary summary = await coordinator.PayBillAsync(zeroBill, TestNonce);
+
+            // Assert: the bill is rejected before any network call is made
+            Assert.IsFalse(summary.IsValid, "A $0.00 bill must fail validation.");
+            paymentMock.Verify(p => p.ProcessPaymentAsync(It.IsAny<PaymentRequest>()), Times.Never());
         }
     }
 }
