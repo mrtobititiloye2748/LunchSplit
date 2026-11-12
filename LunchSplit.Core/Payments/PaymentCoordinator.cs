@@ -11,6 +11,7 @@
  */
 
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace LunchSplit.Core.Payments
@@ -61,10 +62,32 @@ namespace LunchSplit.Core.Payments
          *               string cardNonce - card token for this attendee
          * RETURNS     : Task<PaymentResult> - gateway result
          */
-        public Task<PaymentResult> PayShareAsync(string payerName, decimal amount, string cardNonce)
+        public async Task<PaymentResult> PayShareAsync(string payerName, decimal amount, string cardNonce)
         {
-            // Not implemented yet - driven by test M3-03 (TDD)
-            throw new NotImplementedException();
+            // Build the domain request; every charge gets its own idempotency key
+            PaymentRequest request = new PaymentRequest();
+            request.PayerName = payerName;
+            request.Amount = amount;
+            request.CurrencyCode = _currencyCode;
+            request.CardNonce = cardNonce;
+            request.IdempotencyKey = Guid.NewGuid().ToString();
+
+            try
+            {
+                return await _paymentProcessor.ProcessPaymentAsync(request);
+            }
+            catch (HttpRequestException ex)
+            {
+                // Network failure / HTTP 503 from the gateway
+                throw new PaymentGatewayTimeoutException(
+                    "Payment gateway could not be reached while charging " + payerName + ".", ex);
+            }
+            catch (TaskCanceledException ex)
+            {
+                // HttpClient timeout elapsed before the gateway answered
+                throw new PaymentGatewayTimeoutException(
+                    "Payment gateway timed out while charging " + payerName + ".", ex);
+            }
         }
     }
 }
