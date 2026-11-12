@@ -170,10 +170,60 @@ namespace LunchSplit.Infrastructure
          * PARAMETERS  : string transactionId - Square payment id
          * RETURNS     : Task<PaymentStatus> - mapped domain status
          */
-        public Task<PaymentStatus> GetTransactionStatusAsync(string transactionId)
+        public async Task<PaymentStatus> GetTransactionStatusAsync(string transactionId)
         {
-            // Not implemented yet - driven by test M3-10 (TDD)
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(transactionId))
+            {
+                throw new ArgumentException("A transaction id is required.", nameof(transactionId));
+            }
+
+            try
+            {
+                // GET /v2/payments/{payment_id} on the Square Sandbox
+                GetPaymentsRequest squareRequest = new GetPaymentsRequest
+                {
+                    PaymentId = transactionId
+                };
+                GetPaymentResponse response = await _client.Payments.GetAsync(squareRequest);
+
+                string squareStatus = string.Empty;
+                if (response.Payment != null && response.Payment.Status != null)
+                {
+                    squareStatus = response.Payment.Status;
+                }
+
+                return MapStatus(squareStatus);
+            }
+            catch (SquareApiException)
+            {
+                // Payment not found or request rejected - the status cannot be determined
+                return PaymentStatus.Unknown;
+            }
+        }
+
+        /*
+         * METHOD      : MapStatus
+         * DESCRIPTION : Translates Square's payment status text into the domain enum.
+         * PARAMETERS  : string squareStatus - e.g. "COMPLETED", "APPROVED", "FAILED"
+         * RETURNS     : PaymentStatus - matching domain value (Unknown if not recognised)
+         */
+        private static PaymentStatus MapStatus(string squareStatus)
+        {
+            switch (squareStatus.ToUpperInvariant())
+            {
+                case "APPROVED":
+                    return PaymentStatus.Approved;
+                case "PENDING":
+                    return PaymentStatus.Pending;
+                case "COMPLETED":
+                    return PaymentStatus.Completed;
+                case "CANCELED":
+                    return PaymentStatus.Canceled;
+                case "FAILED":
+                    return PaymentStatus.Failed;
+                default:
+                    return PaymentStatus.Unknown;
+            }
         }
     }
 }
