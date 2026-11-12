@@ -47,5 +47,37 @@ namespace LunchSplit.Tests.Unit
             await Assert.ThrowsExceptionAsync<PaymentGatewayTimeoutException>(
                 async () => await coordinator.PayShareAsync("Alice", 25.50m, TestNonce));
         }
+
+        /*
+         * TEST ID     : M3-04
+         * DESCRIPTION : Parameter and invocation verification - checks that the coordinator
+         *               passes the exact dollar amount, currency and nonce to the gateway.
+         * EXPECTED    : ProcessPaymentAsync called exactly once with Amount == 25.50 (Mock.Verify).
+         */
+        [TestMethod]
+        public async Task M3_04_PayShare_ValidShare_InvokesProcessorOnceWithExactAmount()
+        {
+            // Arrange: the mock gateway approves any payment
+            Mock<IPaymentProcessor> paymentMock = new Mock<IPaymentProcessor>();
+            paymentMock.Setup(p => p.ProcessPaymentAsync(It.IsAny<PaymentRequest>()))
+                       .ReturnsAsync(PaymentResult.Success("TX_999"));
+
+            PaymentCoordinator coordinator = new PaymentCoordinator(paymentMock.Object);
+            decimal expectedAmount = 25.50m;
+
+            // Act: charge Alice her share
+            await coordinator.PayShareAsync("Alice", expectedAmount, TestNonce);
+
+            // Assert: the gateway received exactly one request with the exact values we expect
+            paymentMock.Verify(p => p.ProcessPaymentAsync(It.Is<PaymentRequest>(r =>
+                                    r.Amount == expectedAmount
+                                    && r.CurrencyCode == "CAD"
+                                    && r.CardNonce == TestNonce
+                                    && r.PayerName == "Alice")),
+                               Times.Once());
+
+            // No other gateway methods (e.g. status queries) should have been called
+            paymentMock.VerifyNoOtherCalls();
+        }
     }
 }
