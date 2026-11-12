@@ -25,12 +25,60 @@ namespace LunchSplit.Core.Payments
         // One gateway result per attendee that was charged, in attendee order
         public List<PaymentResult> Results { get; }
 
+        // Names of attendees whose payment went through
+        public List<string> SucceededAttendees { get; }
+
+        // Names of attendees whose payment failed (declined, error, ...)
+        public List<string> FailedAttendees { get; }
+
+        // Number of successful payments in the batch
+        public int SuccessCount
+        {
+            get
+            {
+                return SucceededAttendees.Count;
+            }
+        }
+
+        // Number of failed payments in the batch
+        public int FailureCount
+        {
+            get
+            {
+                return FailedAttendees.Count;
+            }
+        }
+
         // Default constructor: valid, no message, no results yet
         public BatchPaymentSummary()
         {
             IsValid = true;
             ValidationMessage = string.Empty;
             Results = new List<PaymentResult>();
+            SucceededAttendees = new List<string>();
+            FailedAttendees = new List<string>();
+        }
+
+        /*
+         * METHOD      : RecordResult
+         * DESCRIPTION : Stores one attendee's gateway result and files the attendee under
+         *               the success or failure list.
+         * PARAMETERS  : string attendeeName - who was charged
+         *               PaymentResult result - what the gateway answered
+         * RETURNS     : void
+         */
+        public void RecordResult(string attendeeName, PaymentResult result)
+        {
+            Results.Add(result);
+
+            if (result.IsSuccess)
+            {
+                SucceededAttendees.Add(attendeeName);
+            }
+            else
+            {
+                FailedAttendees.Add(attendeeName);
+            }
         }
 
         /*

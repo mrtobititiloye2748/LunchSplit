@@ -124,8 +124,10 @@ namespace LunchSplit.Core.Payments
                     continue;
                 }
 
+                // A declined card is a normal (failed) result, so the loop keeps going and the
+                // remaining attendees are still charged - one bad card does not block the group.
                 PaymentResult result = await PayShareAsync(attendee.Name, amountOwed, cardNonce);
-                summary.Results.Add(result);
+                summary.RecordResult(attendee.Name, result);
             }
 
             return summary;
