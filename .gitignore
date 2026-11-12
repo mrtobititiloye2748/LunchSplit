@@ -427,3 +427,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Assignment 3: local Square sandbox credentials must never be committed
+appsettings.Development.json

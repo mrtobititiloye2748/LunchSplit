@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    LunchSplit.Infrastructure
+    Holds every class that talks to the outside world (the Square Payments API).
+    LunchSplit.Core never references this project, so the domain logic stays
+    independent of the Square SDK (Dependency Inversion).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Official Square .NET SDK (installed with: dotnet add package Square) -->
+    <PackageReference Include="Square" Version="47.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Infrastructure implements the IPaymentProcessor contract defined in Core -->
+    <ProjectReference Include="..\LunchSplit.Core\LunchSplit.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,5 +1,40 @@
-<Solution>
-  <Project Path="LunchSplit.App/LunchSplit.App.csproj" />
-  <Project Path="LunchSplit.Core/LunchSplit.Core.csproj" />
-  <Project Path="LunchSplit.Tests/LunchSplit.Tests.csproj" />
-</Solution>
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LunchSplit.App", "LunchSplit.App\LunchSplit.App.csproj", "{6338E27B-02B0-57BB-B930-F04D71397266}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LunchSplit.Core", "LunchSplit.Core\LunchSplit.Core.csproj", "{628E2224-D354-55A9-8DB5-F88F9644125C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LunchSplit.Infrastructure", "LunchSplit.Infrastructure\LunchSplit.Infrastructure.csproj", "{4EEDDEDB-5FB8-5805-8DCE-DF266F480086}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LunchSplit.Tests", "LunchSplit.Tests\LunchSplit.Tests.csproj", "{BB64454B-CFBC-55AC-9472-D5E0F922DA8E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6338E27B-02B0-57BB-B930-F04D71397266}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6338E27B-02B0-57BB-B930-F04D71397266}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6338E27B-02B0-57BB-B930-F04D71397266}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6338E27B-02B0-57BB-B930-F04D71397266}.Release|Any CPU.Build.0 = Release|Any CPU
+		{628E2224-D354-55A9-8DB5-F88F9644125C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{628E2224-D354-55A9-8DB5-F88F9644125C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{628E2224-D354-55A9-8DB5-F88F9644125C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{628E2224-D354-55A9-8DB5-F88F9644125C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4EEDDEDB-5FB8-5805-8DCE-DF266F480086}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EEDDEDB-5FB8-5805-8DCE-DF266F480086}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EEDDEDB-5FB8-5805-8DCE-DF266F480086}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EEDDEDB-5FB8-5805-8DCE-DF266F480086}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB64454B-CFBC-55AC-9472-D5E0F922DA8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB64454B-CFBC-55AC-9472-D5E0F922DA8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB64454B-CFBC-55AC-9472-D5E0F922DA8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB64454B-CFBC-55AC-9472-D5E0F922DA8E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

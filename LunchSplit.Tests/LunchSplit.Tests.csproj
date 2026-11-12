@@ -5,12 +5,20 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
-<ItemGroup>
-  <PackageReference Include="MSTest.TestFramework" Version="3.4.3" />
-  <PackageReference Include="MSTest.TestAdapter" Version="3.4.3" />
-</ItemGroup>
+  <ItemGroup>
+    <!-- Test SDK lets 'dotnet test' discover and run the MSTest tests from the command line -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.4.3" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.4.3" />
+    <!-- Moq: dynamic mocking framework used by the Tier 2 in-memory tests -->
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <!-- Configuration: loads Square sandbox credentials from appsettings.json / environment variables -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
@@ -18,6 +26,18 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LunchSplit.Core\LunchSplit.Core.csproj" />
+    <ProjectReference Include="..\LunchSplit.Infrastructure\LunchSplit.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Credential template (empty values are committed; real keys are NOT) -->
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Optional local override holding real sandbox keys (git-ignored) -->
+    <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

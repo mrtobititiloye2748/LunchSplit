@@ -132,3 +132,41 @@ Overall, this assignment strengthened my understanding of C# fundamentals, softw
 The source code and project files are available on GitHub:
 
 https://github.com/mrtobititiloye2748/LunchSplit
+---
+
+# Assignment 3: Payment Gateway Integration & Isolated Mocking
+
+Assignment 3 connects LunchSplit to the **Square Payments API (Sandbox)** through a decoupled, interface-driven design. A two-tier test suite checks it. See `CODEMAP.md` for the file map used by the grading harness.
+
+## Architecture
+
+- **LunchSplit.Core/Payments**: the domain side. It has no vendor code.
+  - `IPaymentProcessor`: gateway contract (`ProcessPaymentAsync`, `GetTransactionStatusAsync`).
+  - `PaymentRequest`, `PaymentResult`, `PaymentStatus`: domain DTOs (dollars, ISO currency, idempotency key, card nonce).
+  - `PaymentCoordinator`: the payment manager. It receives `IPaymentProcessor` through its constructor (Dependency Injection). It rejects $0.00 bills before any call is made, splits a bill with the A1 `Splitter`, charges each attendee, and wraps network errors in `PaymentGatewayTimeoutException`.
+  - `BatchPaymentSummary`: per-attendee successes and failures for a whole-bill run.
+- **LunchSplit.Infrastructure**: the only project that references the Square SDK.
+  - `SquarePaymentService`: implements `IPaymentProcessor` with `client.Payments.CreateAsync` / `GetAsync`. It uses Sandbox mode with an explicit 5-second HttpClient timeout.
+  - `SquareSettings`: token, location ID and timeout. These are loaded at runtime and never hard-coded.
+
+## Test Suite
+
+| Tier | Class | Tests |
+| --- | --- | --- |
+| Tier 1: live Square Sandbox | `LunchSplit.Tests/Integration/SquareSandboxTests.cs` | M3-01, M3-02, M3-08, M3-09, M3-10 |
+| Tier 2: Moq in-memory | `LunchSplit.Tests/Unit/PaymentProcessorMoqTests.cs` | M3-03, M3-04, M3-05, M3-06, M3-07 |
+
+## Configuring Square Sandbox Credentials
+
+Credentials are **not** stored in the repository. Set them as environment variables before running the tests:
+
+```bash
+export SQUARE_SANDBOX_ACCESS_TOKEN="<sandbox access token>"
+export SQUARE_SANDBOX_LOCATION_ID="<sandbox location id>"
+export SQUARE_CURRENCY="CAD"   # must match the sandbox location's currency
+dotnet test LunchSplit.sln
+```
+
+On Windows PowerShell, use `$env:SQUARE_SANDBOX_ACCESS_TOKEN="..."`. Alternatively, put the same keys in `LunchSplit.Tests/appsettings.Development.json`. That file is git-ignored.
+
+If the credentials are missing, the Tier 1 tests are reported as **Inconclusive (skipped)** rather than failing. The Tier 2 Moq tests always run offline.
