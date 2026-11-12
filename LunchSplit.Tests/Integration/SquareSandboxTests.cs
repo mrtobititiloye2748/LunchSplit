@@ -126,5 +126,32 @@ namespace LunchSplit.Tests.Integration
             Assert.IsFalse(result.IsSuccess, "A declined card must not be reported as a success.");
             Assert.AreEqual("CARD_DECLINED", result.ErrorCode);
         }
+
+        /*
+         * TEST ID     : M3-08
+         * DESCRIPTION : Live unsupported currency enforcement - charge in EUR against a
+         *               sandbox location that only accepts its own currency (CAD).
+         * EXPECTED    : IsSuccess == false and Square returns an HTTP 400 validation error.
+         */
+        [TestMethod]
+        [Timeout(LiveTestTimeoutMs)]
+        public async Task M3_08_ProcessPayment_UnsupportedCurrency_ReturnsHttp400ValidationError()
+        {
+            // Arrange: use EUR (or USD if the sandbox location itself happens to be in EUR)
+            IPaymentProcessor service = CreateService();
+            string wrongCurrency = "EUR";
+            if (_currency == "EUR")
+            {
+                wrongCurrency = "USD";
+            }
+            PaymentRequest request = BuildRequest("cnon:card-nonce-ok", 12.50m, wrongCurrency);
+
+            // Act: send the mismatched-currency payment to the live sandbox
+            PaymentResult result = await service.ProcessPaymentAsync(request);
+
+            // Assert: rejected by Square's request validation with HTTP 400 Bad Request
+            Assert.IsFalse(result.IsSuccess, "A payment in the wrong currency must be rejected.");
+            Assert.AreEqual(400, result.HttpStatusCode);
+        }
     }
 }
