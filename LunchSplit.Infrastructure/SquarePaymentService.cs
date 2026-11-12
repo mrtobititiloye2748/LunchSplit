@@ -77,17 +77,51 @@ namespace LunchSplit.Infrastructure
             // Translate the domain DTO into Square's CreatePayment payload
             CreatePaymentRequest squareRequest = BuildSquareRequest(request);
 
-            // POST /v2/payments on the Square Sandbox
-            CreatePaymentResponse response = await _client.Payments.CreateAsync(squareRequest);
-
-            // Translate Square's response back into the domain DTO
-            string paymentId = string.Empty;
-            if (response.Payment != null && response.Payment.Id != null)
+            try
             {
-                paymentId = response.Payment.Id;
+                // POST /v2/payments on the Square Sandbox
+                CreatePaymentResponse response = await _client.Payments.CreateAsync(squareRequest);
+
+                // Translate Square's response back into the domain DTO
+                string paymentId = string.Empty;
+                if (response.Payment != null && response.Payment.Id != null)
+                {
+                    paymentId = response.Payment.Id;
+                }
+
+                return PaymentResult.Success(paymentId);
+            }
+            catch (SquareApiException ex)
+            {
+                // Square answered with a 4xx/5xx status (declined card, bad currency, ...).
+                // This is a business failure, not a crash, so return a failed domain result.
+                return BuildFailureResult(ex);
+            }
+        }
+
+        /*
+         * METHOD      : BuildFailureResult
+         * DESCRIPTION : Converts a Square API error into a failed domain PaymentResult. The first
+         *               error in Square's "errors" array holds the main error code.
+         * PARAMETERS  : SquareApiException ex - exception thrown by the Square SDK
+         * RETURNS     : PaymentResult - IsSuccess = false with ErrorCode / ErrorMessage
+         */
+        private static PaymentResult BuildFailureResult(SquareApiException ex)
+        {
+            string errorCode = "UNKNOWN_ERROR";
+            string errorMessage = ex.Message;
+
+            if (ex.Errors != null && ex.Errors.Count > 0)
+            {
+                Error firstError = ex.Errors[0];
+                errorCode = firstError.Code.ToString();   // e.g. "CARD_DECLINED"
+                if (firstError.Detail != null)
+                {
+                    errorMessage = firstError.Detail;
+                }
             }
 
-            return PaymentResult.Success(paymentId);
+            return PaymentResult.Failure(errorCode, errorMessage);
         }
 
         /*
