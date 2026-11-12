@@ -15,6 +15,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using LunchSplit.Core.Payments;
 using Square;
+using Square.Payments;
 
 namespace LunchSplit.Infrastructure
 {
@@ -66,10 +67,66 @@ namespace LunchSplit.Infrastructure
          * PARAMETERS  : PaymentRequest request - domain payment request
          * RETURNS     : Task<PaymentResult> - domain result
          */
-        public Task<PaymentResult> ProcessPaymentAsync(PaymentRequest request)
+        public async Task<PaymentResult> ProcessPaymentAsync(PaymentRequest request)
         {
-            // Not implemented yet - driven by test M3-01 (TDD)
-            throw new NotImplementedException();
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            // Translate the domain DTO into Square's CreatePayment payload
+            CreatePaymentRequest squareRequest = BuildSquareRequest(request);
+
+            // POST /v2/payments on the Square Sandbox
+            CreatePaymentResponse response = await _client.Payments.CreateAsync(squareRequest);
+
+            // Translate Square's response back into the domain DTO
+            string paymentId = string.Empty;
+            if (response.Payment != null && response.Payment.Id != null)
+            {
+                paymentId = response.Payment.Id;
+            }
+
+            return PaymentResult.Success(paymentId);
+        }
+
+        /*
+         * METHOD      : BuildSquareRequest
+         * DESCRIPTION : Maps a domain PaymentRequest onto Square's CreatePaymentRequest.
+         * PARAMETERS  : PaymentRequest request - domain request
+         * RETURNS     : CreatePaymentRequest - Square SDK payload
+         */
+        private CreatePaymentRequest BuildSquareRequest(PaymentRequest request)
+        {
+            // Square expects the amount in the smallest currency unit (cents) and an ISO currency code
+            Money amountMoney = new Money();
+            amountMoney.Amount = ConvertToCents(request.Amount);
+            amountMoney.Currency = Currency.FromCustom(request.CurrencyCode.ToUpperInvariant());
+
+            CreatePaymentRequest squareRequest = new CreatePaymentRequest
+            {
+                SourceId = request.CardNonce,            // card nonce (magic nonce in the sandbox)
+                IdempotencyKey = request.IdempotencyKey, // prevents double charges on retries
+                AmountMoney = amountMoney,
+                LocationId = _settings.LocationId,
+                Autocomplete = true,                     // capture immediately so the status becomes COMPLETED
+                Note = "LunchSplit share for " + request.PayerName
+            };
+
+            return squareRequest;
+        }
+
+        /*
+         * METHOD      : ConvertToCents
+         * DESCRIPTION : Converts a dollar amount to whole cents using banker's rounding,
+         *               the same rounding rule used by the A1 Rounder class.
+         * PARAMETERS  : decimal amount - amount in dollars (for example 25.50)
+         * RETURNS     : long - amount in cents (for example 2550)
+         */
+        private static long ConvertToCents(decimal amount)
+        {
+            decimal cents = Math.Round(amount * 100m, 0, MidpointRounding.ToEven);
+            return (long)cents;
         }
 
         /*
