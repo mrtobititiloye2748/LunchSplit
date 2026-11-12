@@ -15,12 +15,14 @@ namespace LunchSplit.Tests
             Rounder rounder = new Rounder();
 
             // Act:
-            // Round the value 12.345 → expected result is 12.35
+            // Round the value 12.345 → expected result is 12.34.
+            // Banker's rounding (IEEE 754, MidpointRounding.ToEven) sends an exact
+            // midpoint to the nearest EVEN digit: 12.34|5 → 12.34 (4 is even).
             decimal result = rounder.RoundSubtotal(12.345m);
 
             // Assert:
             // Check that the rounded value matches the expected result.
-            Assert.AreEqual(12.35m, result);
+            Assert.AreEqual(12.34m, result);
         }
 
         [TestMethod]

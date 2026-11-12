@@ -30,22 +30,24 @@ namespace LunchSplit.Core
                 shareTotal += roundedShare;
             }
 
-            // 3. Round attendee weights and rebuild attendee list
-            List<Attendee> attendees = new List<Attendee>();
+            // 3. Round attendee weights.
+            //    The rounded weights are kept in a separate list (same order as bill.Attendees)
+            //    so the ORIGINAL Attendee objects can be used as dictionary keys. Callers look
+            //    up results with the attendee objects they passed in (result[attendees[0]]).
+            List<int> roundedWeights = new List<int>();
             foreach (Attendee attendee in bill.Attendees)
             {
                 int roundedWeight = (int)_rounder.RoundWeight(attendee.Weight);
-                Attendee newAttendee = new Attendee(attendee.Name, roundedWeight, attendee.Included);
-                attendees.Add(newAttendee);
+                roundedWeights.Add(roundedWeight);
             }
 
             // 4. Compute total weight of included attendees
             int totalWeight = 0;
-            foreach (Attendee attendee in attendees)
+            for (int i = 0; i < bill.Attendees.Count; i++)
             {
-                if (attendee.Included)
+                if (bill.Attendees[i].Included)
                 {
-                    totalWeight += attendee.Weight;
+                    totalWeight += roundedWeights[i];
                 }
             }
 
@@ -53,7 +55,7 @@ namespace LunchSplit.Core
             if (totalWeight == 0)
             {
                 Dictionary<Attendee, decimal> zeroResults = new Dictionary<Attendee, decimal>();
-                foreach (Attendee attendee in attendees)
+                foreach (Attendee attendee in bill.Attendees)
                 {
                     zeroResults.Add(attendee, 0m);
                 }
@@ -63,11 +65,13 @@ namespace LunchSplit.Core
             // 5. Compute total bill
             decimal totalBill = subtotal + tax + tip + shareTotal;
 
-            // 6. Compute each attendee's share
+            // 6. Compute each attendee's share (keyed by the original Attendee object)
             Dictionary<Attendee, decimal> results = new Dictionary<Attendee, decimal>();
 
-            foreach (Attendee attendee in attendees)
+            for (int i = 0; i < bill.Attendees.Count; i++)
             {
+                Attendee attendee = bill.Attendees[i];
+
                 // If attendee is excluded, they owe 0
                 if (!attendee.Included)
                 {
@@ -76,7 +80,7 @@ namespace LunchSplit.Core
                 }
 
                 // Compute weighted share
-                decimal weightRatio = attendee.Weight / (decimal)totalWeight;
+                decimal weightRatio = roundedWeights[i] / (decimal)totalWeight;
                 decimal rawSplit = totalBill * weightRatio;
 
                 // Round the final split
